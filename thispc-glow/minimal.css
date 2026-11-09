@@ -1,4 +1,13 @@
 /* Visual theme only; existing layout and slider interaction geometry stay intact. */
+.local-glow-tools { margin: 16px 0; padding: 14px; border: 1px solid #3b4144; border-radius: 7px; background: #222529; }
+.local-glow-tools h2 { margin: 0 0 12px; font-size: 14px; color: #eceeea; }
+.local-glow-tools label { display: flex; justify-content: space-between; align-items: center; height: 32px; margin: 6px 0; color: #c7cdc9; font-size: 12px; }
+.local-glow-tools input, .local-glow-tools select { width: 138px; padding: 5px; background: #292d31; color: #eceeea; border: 1px solid #454d50; border-radius: 4px; }
+.local-glow-tools input { width: 70px; }
+.local-glow-tools p { margin: 10px 0 0; font-size: 11px; line-height: 1.6; color: #a5aca8; }
+.local-glow-tools button { width: 100%; padding: 8px; height: 36px; min-height: 36px; margin-top: 10px; }
+.local-mask-source { display: flex; gap: 6px; margin: 6px 0 12px; }
+.local-mask-source .quick-mode-button { flex: 1; min-width: 0; }
 :root {
   --bg-0: #1b1d20; --bg-1: #222529; --bg-2: #292d31;
   --surface: #222529; --surface-strong: #292d31; --surface-soft: #222529;

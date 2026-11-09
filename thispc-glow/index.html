@@ -5,7 +5,7 @@
     <title>这台电脑的插件</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="minimal.css" />
-    <script>window.__YC_GLOW_MANIFEST_VERSION__ = "1.4.2";</script>
+    <script>window.__YC_GLOW_MANIFEST_VERSION__ = "1.5.0";</script>
   </head>
   <body data-view="home">
     <main class="app-shell">
@@ -50,6 +50,14 @@
           </div>
         </section>
 
+        <section class="local-glow-tools" aria-label="局部柔光">
+          <h2>局部柔光</h2>
+          <div class="local-mask-source"><button id="localFromMaskButton" class="quick-mode-button is-active" aria-pressed="true">当前图层蒙版</button><button id="localFromSelectionButton" class="quick-mode-button" aria-pressed="false">当前选区</button></div>
+          <label>边缘羽化（px） <input id="localMaskFeather" type="number" min="0" max="1000" step="1" value="20" /></label>
+          <button id="newLocalGlowButton" class="action-button primary-button">创建局部柔光</button>
+          <p>白色区域生效，黑色区域保护；原蒙版不变。</p>
+          <p>Camera Raw 18.5：在蒙版的“调整预设”选择 ThisPC 柔化。它是原生近似效果。</p>
+        </section>
         <footer class="designer-credit">
           <span class="designer-credit-name">原作者 1CHEN · 本机修改副本</span>
           <span id="homeVersionLabel" class="designer-credit-version" hidden></span>
@@ -63,6 +71,7 @@
           <p id="workInfo">等待 Photoshop 返回工作文档信息。</p>
         </div>
 
+        <section id="localMaskWork" class="local-glow-tools" hidden><h2>局部蒙版</h2><label>边缘羽化（px） <input id="workMaskFeather" type="number" min="0" max="1000" step="1" value="20" /></label><p>仅蒙版区域生效，保存后仍可绘制蒙版。</p></section>
         <div id="paramsPanel" class="params-panel" aria-label="光效参数"></div>
 
         <div class="preview-performance dev-only" aria-live="polite">
@@ -145,6 +154,7 @@
     <script src="src/ui/homeLinks.js"></script>
     <script src="src/glow/expiry.js"></script>
     <script src="src/ui/panel.js"></script>
+    <script src="src/photoshop/localGlow.js"></script>
     <script src="src/main.js"></script>
   </body>
 </html>
