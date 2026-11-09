@@ -1,0 +1,10 @@
+*.zip
+*.psd
+*.psb
+work/
+outputs/
+node_modules/
+.env
+.env.*
+Thumbs.db
+.DS_Store
