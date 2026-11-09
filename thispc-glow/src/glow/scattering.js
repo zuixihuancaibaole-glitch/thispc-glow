@@ -45,7 +45,8 @@
     const light = new Float32Array(count * 3);
     const xray = app.Pixels.makeImageData(source.width, source.height);
     const white = params.whiteMist / 100;
-    const knee = clamp((0.48 - params.threshold * 2 - white * 0.12) / (1 + params.drCompression / 160), 0.02, 0.8);
+    // Exponential mapping keeps the entire 1–35 emission-range slider responsive.
+    const knee = 0.48 * Math.exp(-5 * params.threshold) * (1 - white * 0.25) / (1 + params.drCompression / 160);
     for (let pixel = 0; pixel < count; pixel++) {
       const index = pixel * 4;
       const red = linear[source.data[index]], green = linear[source.data[index + 1]], blue = linear[source.data[index + 2]];
@@ -109,7 +110,7 @@
     const params = app.GlowParams.normalizeParams(rawParams);
     const sourceKey = `${params.threshold}|${params.drCompression}|${params.whiteMist}`;
     const geometryKey = `${sourceKey}|${params.radius}|${params.iterations}|${params.coreOpacity}`;
-    const compatible = previous?.version === 'scatter-v1.1' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
+    const compatible = previous?.version === 'scatter-v1.2' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
     const sourceHit = compatible && previous.sourceKey === sourceKey;
     const geometryHit = sourceHit && previous.geometryKey === geometryKey;
     const prepared = sourceHit ? previous.prepared : prepare(source, params);
@@ -117,7 +118,9 @@
     const halo = geometryHit ? previous.halo : scatter(prepared.light, source.width, source.height, params);
     const geometryDone = now();
     const bloom = app.Pixels.makeImageData(source.width, source.height);
-    const gain = clamp(0.08 + params.threshold * 2 + params.whiteMist * 0.004, 0.02, 0.85) * 1.75 * params.mainOpacity / 100;
+    // This UI control is haze density; it must also affect already-selected white lights.
+    const density = (1 + params.drCompression / 80) / 1.25;
+    const gain = clamp(0.08 + params.threshold * 2 + params.whiteMist * 0.004, 0.02, 0.85) * density * 1.75 * params.mainOpacity / 100;
     const saturation = 1 + params.saturation / 100;
     for (let pixel = 0; pixel < source.width * source.height; pixel++) {
       let red = halo[pixel * 3], green = halo[pixel * 3 + 1], blue = halo[pixel * 3 + 2];
@@ -138,7 +141,7 @@
     const finished = now();
     return {
       xray: prepared.xray, bloom,
-      cache: {version:'scatter-v1.1', width:source.width, height:source.height, sourceData:source.data, sourceKey, geometryKey, prepared, halo},
+      cache: {version:'scatter-v1.2', width:source.width, height:source.height, sourceData:source.data, sourceKey, geometryKey, prepared, halo},
       cacheMode: geometryHit ? 'compose' : sourceHit ? 'geometry' : 'full',
       sourceRebuilt: !sourceHit, geometryRebuilt: !geometryHit,
       timing: {sourceStageMs:sourceDone-started, blurStageMs:geometryDone-sourceDone, composeMs:finished-geometryDone, totalAlgorithmMs:finished-started, totalMs:finished-started},

@@ -1,6 +1,6 @@
 # ThisPC Glow · 这台电脑的插件
 
-Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.0**。基于用户提供的一晨辉光 1.3.1 修改，原作者 **1CHEN**。来源与权利说明见 [CREDITS.md](CREDITS.md)。
+Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.1**。基于用户提供的一晨辉光 1.3.1 修改，原作者 **1CHEN**。来源与权利说明见 [CREDITS.md](CREDITS.md)。
 
 ## 功能
 
@@ -16,7 +16,7 @@ Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.0**
 
 ## 下载与安装
 
-在 [Releases](https://github.com/zuixihuancaibaole-glitch/thispc-glow/releases) 下载 `thispc-glow-v1.5.0.zip`。其中 `thispc-glow` 是 PS 插件，`camera-raw-local-presets` 是 Camera Raw 的独立预设。
+在 [Releases](https://github.com/zuixihuancaibaole-glitch/thispc-glow/releases) 下载 `thispc-glow-v1.5.1.zip`。其中 `thispc-glow` 是 PS 插件，`camera-raw-local-presets` 是 Camera Raw 的独立预设。
 
 已在 **Windows / Photoshop 2026** 实测。清单声明最低 Photoshop 24.0，但未逐一验证其他版本及 macOS。
 
@@ -24,7 +24,7 @@ Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.0**
 2. 解压 ZIP，将其中整个 `thispc-glow` 文件夹放入 Photoshop 安装目录下的 `Plug-ins` 文件夹。确保 `manifest.json` 直接位于插件文件夹内。
 3. 如果已安装相同标识 `com.local.thispc.glow` 的版本，先将旧文件夹移到 `Plug-ins` 外备份，避免重复加载。
 4. 打开 Photoshop，在 **增效工具 → 这台电脑的插件 → 这台电脑的插件** 中打开面板。
-5. 确认面板版本显示 **1.5.0**。该安装方式在本项目测试环境可用；若其他环境不识别，请使用 Adobe 支持的 UXP 开发加载方式加载 `thispc-glow/manifest.json`。
+5. 确认面板版本显示 **1.5.1**。该安装方式在本项目测试环境可用；若其他环境不识别，请使用 Adobe 支持的 UXP 开发加载方式加载 `thispc-glow/manifest.json`。
 
 更新时，保留自己的照片和 PSD，只替换插件文件夹。
 
@@ -35,6 +35,8 @@ Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.0**
 建议先尝试 **1/4 黑柔**；白柔的柔雾更明显，**1/2 白柔**会明显降低局部反差。效果过强时降低“柔光强度”或光效图层不透明度。
 
 编辑已有光效时，先选中光效图层，再点击“编辑光效”。更新插件不会自动改变已保存的光效像素；重新点选预设并保存，才会按新版重新计算。检查光效图层左侧的眼睛是否开启。
+
+1.5.1 修复高光识别控制的响应：“发光范围”在 1–35 的整个区间持续改变识别范围；“柔光饱和度”同时控制光雾浓度，对已经完全识别的白色亮光也有效。这项浓度控制与下方颜色饱和度控制分别生效。旧版问题、参数含义和修复对比见 [高光识别修复说明](docs/highlight-controls.md)。
 
 ### 局部柔光与 Camera Raw
 
@@ -57,10 +59,10 @@ Camera Raw 中采用纹理、清晰度、去朦胧等原生参数近似柔化，
 测试使用 Node.js 内置模块，无第三方依赖。在仓库根目录运行：
 
 ```powershell
-node --test tests/scattering.test.cjs tests/white-mist.test.cjs tests/local-glow.test.cjs
+node --test tests/scattering.test.cjs tests/white-mist.test.cjs tests/local-glow.test.cjs tests/highlight-controls.test.cjs
 ```
 
-检查局部光晕衰减、均匀灰场、中性色、三档递进、全黑和零强度、缓存一致性、原图数据不变、旧参数兼容、预设及状态保存，以及蒙版坐标、缩放、羽化、密度、保存时避免重复遮罩、编辑和取消、写入失败保护。
+检查局部光晕衰减、均匀灰场、中性色、三档递进、全黑和零强度、缓存一致性、原图数据不变、旧参数兼容、预设及状态保存，以及蒙版坐标、缩放、羽化、密度、保存时避免重复遮罩、编辑和取消、写入失败保护。高光识别回归覆盖发光范围全段、白色亮光的浓度响应、缓存与首次计算一致性。
 
 已在 Photoshop 2026 使用合成测试图验证新建、黑白柔切换、保存为智能对象、再次编辑、档位恢复，以及从选区和图层蒙版创建局部柔光；羽化由 12 px 改为 24 px 后，保存并重新编辑仍为 24 px。Camera Raw 18.5 的蒙版预设菜单已识别全部三档，尚未完成逐档应用的实机检查。测试不等于所有照片、色彩空间和位深场景都已验证。
 
