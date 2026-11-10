@@ -14,11 +14,33 @@
     return wrapped < length ? wrapped : period - wrapped - 1;
   }
 
-  function boxBlur(input, output, width, height, radius, horizontal) {
+  function* boxBlur(input, output, width, height, radius, horizontal) {
+    if (!horizontal) {
+      const rowSize = width * 3, divisor = 2 * radius + 1;
+      const sums = new Float64Array(rowSize);
+      // Traverse rows contiguously, retaining the original per-column summation order.
+      for (let k = -radius; k <= radius; k++) {
+        const row = mirror(k, height) * rowSize;
+        for (let i = 0; i < rowSize; i++) sums[i] += input[row + i];
+        if ((k + radius + 1) % 16 === 0) yield;
+      }
+      for (let y = 0; y < height; y++) {
+        const row = y * rowSize;
+        const entering = mirror(y + radius + 1, height) * rowSize;
+        const leaving = mirror(y - radius, height) * rowSize;
+        for (let i = 0; i < rowSize; i++) {
+          output[row + i] = sums[i] / divisor;
+          sums[i] += input[entering + i] - input[leaving + i];
+        }
+        if ((y & 15) === 15) yield;
+      }
+      return;
+    }
     const length = horizontal ? width : height;
     const lines = horizontal ? height : width;
     const step = horizontal ? 3 : width * 3;
     const divisor = 2 * radius + 1;
+    const linesPerChunk = Math.max(1, Math.floor(32768 / length));
     for (let line = 0; line < lines; line++) {
       const base = horizontal ? line * width * 3 : line * 3;
       let red = 0, green = 0, blue = 0;
@@ -37,10 +59,11 @@
         green += input[entering + 1] - input[leaving + 1];
         blue += input[entering + 2] - input[leaving + 2];
       }
+      if ((line + 1) % linesPerChunk === 0) yield;
     }
   }
 
-  function prepare(source, params) {
+  function* prepare(source, params) {
     const count = source.width * source.height;
     const light = new Float32Array(count * 3);
     const xray = app.Pixels.makeImageData(source.width, source.height);
@@ -59,11 +82,12 @@
       light[pixel * 3 + 2] = blue * weight;
       xray.data[index] = xray.data[index + 1] = xray.data[index + 2] = weight * 255;
       xray.data[index + 3] = 255;
+      if ((pixel & 16383) === 16383) yield;
     }
     return {light, xray};
   }
 
-  function scatter(light, width, height, params) {
+  function* scatter(light, width, height, params) {
     const halo = new Float32Array(light.length);
     const first = new Float32Array(light.length), second = new Float32Array(light.length);
     const layers = params.iterations;
@@ -77,8 +101,8 @@
       let current = light;
       // Three normalized box passes approximate a Gaussian without a large convolution kernel.
       for (let pass = 0; pass < 3; pass++) {
-        boxBlur(current, first, width, height, radius, true);
-        boxBlur(first, second, width, height, radius, false);
+        yield* boxBlur(current, first, width, height, radius, true);
+        yield* boxBlur(first, second, width, height, radius, false);
         current = second;
       }
       for (let i = 0; i < halo.length; i++) halo[i] += second[i] * weight;
@@ -102,7 +126,7 @@
     return rgb.map(value => value + minimum);
   }
 
-  function renderPhaseOneCached(source, rawParams = {}, previous = null) {
+  function* renderStages(source, rawParams = {}, previous = null) {
     if (!source || !Number.isInteger(source.width) || !Number.isInteger(source.height) || source.width < 1 || source.height < 1 || source.width * source.height > 16000000 || source.data?.length !== source.width * source.height * 4) {
       throw new Error('Invalid RGBA image dimensions or pixel count.');
     }
@@ -113,9 +137,9 @@
     const compatible = previous?.version === 'scatter-v1.2' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
     const sourceHit = compatible && previous.sourceKey === sourceKey;
     const geometryHit = sourceHit && previous.geometryKey === geometryKey;
-    const prepared = sourceHit ? previous.prepared : prepare(source, params);
+    const prepared = sourceHit ? previous.prepared : yield* prepare(source, params);
     const sourceDone = now();
-    const halo = geometryHit ? previous.halo : scatter(prepared.light, source.width, source.height, params);
+    const halo = geometryHit ? previous.halo : yield* scatter(prepared.light, source.width, source.height, params);
     const geometryDone = now();
     const bloom = app.Pixels.makeImageData(source.width, source.height);
     // This UI control is haze density; it must also affect already-selected white lights.
@@ -131,12 +155,14 @@
         const component = channel === 0 ? red : channel === 1 ? green : blue;
         const diffuseColor = gray + (component - gray) * saturation;
         const diffusion = diffuseColor > 0 ? diffuseColor : 0;
+        if (diffusion === 0) { bloom.data[index] = 0; continue; }
         const original = source.data[index] / 255;
         const target = encode(clamp(linear[source.data[index]] + diffusion * gain, 0, 1));
         // shortcut: Screen-only layers cannot attenuate source peaks; use full-image linear compositing for optical calibration.
         bloom.data[index] = original < 1 ? clamp((target - original) / (1 - original), 0, 1) * 255 : 0;
       }
       bloom.data[pixel * 4 + 3] = 255;
+      if ((pixel & 8191) === 8191) yield;
     }
     const finished = now();
     return {
@@ -147,5 +173,26 @@
       timing: {sourceStageMs:sourceDone-started, blurStageMs:geometryDone-sourceDone, composeMs:finished-geometryDone, totalAlgorithmMs:finished-started, totalMs:finished-started},
     };
   }
-  app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached});
+  function renderPhaseOneCached(...args) {
+    const stages = renderStages(...args);
+    let step;
+    do { step = stages.next(); } while (!step.done);
+    return step.value;
+  }
+  async function renderPhaseOneCachedAsync(source, params, previous, {isStale} = {}) {
+    const stages = renderStages(source, params, previous);
+    let sliceStarted = now();
+    try {
+      while (true) {
+        if (isStale?.()) throw new Error('预览任务已过期，已停止计算。');
+        const step = stages.next();
+        if (step.done) return step.value;
+        if (now() - sliceStarted >= 12) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+          sliceStarted = now();
+        }
+      }
+    } finally { stages.return(); }
+  }
+  app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached, renderPhaseOneCachedAsync});
 })();

@@ -4,7 +4,7 @@ const nodes = new Map();
 function node(id) { if(!nodes.has(id)) nodes.set(id,{value:'',hidden:false,events:{},addEventListener(k,fn){this.events[k]=fn;},classList:{add(){},remove(){}},setAttribute(){},click(){return this.events.click?.();}}); return nodes.get(id); }
 const document = {readyState:'complete',getElementById:node};
 node('localMaskFeather').value='4';
-let state=null, failWrite=false, rawSaves=0;
+let state=null, failWrite=false, rawSaves=0, maskWrites=0;
 const masks = new Map([['1:5',{data:pixels,feather:3,density:60}]]);
 function maskedLayer(doc,id) { return {id,visible:true,
  get layerMaskFeather(){return masks.get(`${doc}:${id}`)?.feather||0;},
@@ -22,6 +22,7 @@ const photoshop={app:{activeDocument:docs[1]},imaging:{
   async getSelection(){return {sourceBounds:{left:0,top:0,right:2,bottom:2},imageData:{width:2,height:2,components:1,getData:async()=>new Uint8Array([255,255,255,255]),dispose(){}}};},
   async createImageDataFromBuffer(data,options){return {...options,data,dispose(){}};},
   async putLayerMask({documentID,layerID,imageData}) {
+    maskWrites++;
     if(failWrite && documentID===1) throw new Error('Simulated mask write failure');
     masks.set(`${documentID}:${layerID}`,{data:new Uint8Array(imageData.data),feather:0,density:255});
   }
@@ -29,7 +30,7 @@ const photoshop={app:{activeDocument:docs[1]},imaging:{
 function start(mode){state={mode,original:{id:1},work:{id:2,width:2,height:1},layerRoles:{bloom:{layerId:11}}};photoshop.app.activeDocument=docs[2];return {mode};}
 const workflow={getState:()=>state,getMode:()=>state?.mode,
   async createNewGlow(){return start('new');},async beginEditGlow(){return start('edit');},
-  async updatePreview(){masks.delete('2:11');return {preview:true};},
+  async updatePreview(){if(!state.previewUsesPixels)masks.delete('2:11');return {preview:true};},
   async saveGlowToOriginal(){assert.equal(masks.has('2:11'),false,'Transient mask must be removed before exporting bloom; avoid double masking');rawSaves++;state=null;docs[1].activeLayers=[targetLayer];photoshop.app.activeDocument=docs[1];return {saved:true};},
   async returnToOriginal(){state=null;photoshop.app.activeDocument=docs[1];return {cancelled:true};}
 };
@@ -50,12 +51,16 @@ vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../thispc-glow/src/photo
   assert.equal(app.LocalGlow.featherValue(0),0); assert.equal(app.LocalGlow.featherValue(1000),1000);
   for(const value of [-1,1001,'invalid',Infinity]) assert.throws(()=>app.LocalGlow.featherValue(value));
   assert.deepEqual([...app.LocalGlow.resizeMask(pixels,4,2,2,1)],[255,0]);
+  assert.equal(app.LocalGlow.resizeMask(pixels,4,2,4,2),pixels,'Do not copy a full-resolution mask if no resize is needed');
   assert.throws(()=>app.LocalGlow.resizeMask(new Uint8Array(1),4,2,2,1));
   assert.deepEqual([...app.LocalGlow.expandMask(new Uint8Array([255,128]),2,1,{left:1,top:1},4,2)],[0,0,0,0,0,255,128,0]);
   assert.deepEqual([...app.LocalGlow.expandMask(new Uint8Array([255,128]),2,1,{left:-1,top:0},2,1)],[128,0]);
   await node('newLocalGlowButton').click(); await workflow.createNewGlow();
   assert.deepEqual([...masks.get('2:11').data],[255,0]);assert.equal(masks.get('2:11').feather,2);
   await workflow.updatePreview();assert.equal(masks.get('2:11').feather,2);
+  state.previewUsesPixels=true; const previousWrites=maskWrites;
+  await workflow.updatePreview();await workflow.updatePreview();
+  assert.equal(maskWrites,previousWrites,'Stable preview layers retain their mask without re-uploading it');
   await workflow.saveGlowToOriginal();
   assert.deepEqual([...masks.get('1:42').data],[...pixels]);assert.equal(masks.get('1:42').feather,4);assert.equal(masks.get('1:42').density,60,'Preserve source mask density in percent');
   assert.equal(masks.get('1:5').feather,3,'Do not feather or modify source mask');

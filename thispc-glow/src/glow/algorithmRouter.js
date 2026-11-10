@@ -44,6 +44,14 @@
 
   app.GlowAlgorithm = Object.freeze({
     renderPhaseOneCached,
+    async renderPhaseOneCachedAsync(source, params = {}, cache = null, options = {}) {
+      const normalized = app.GlowParams.normalizeParams(params);
+      if (normalized.effectMode !== 1 && normalized.scatterModel === 1) {
+        return app.ScatterAlgorithm.renderPhaseOneCachedAsync(source, normalized, cache, options);
+      }
+      if (options.isStale?.()) throw new Error('预览任务已过期，已停止计算。');
+      return renderPhaseOneCached(source, params, cache);
+    },
     renderPhaseOne(source, params = {}) {
       const {xray, bloom} = renderPhaseOneCached(source, params);
       return {xray, bloom};

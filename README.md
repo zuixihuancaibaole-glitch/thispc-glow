@@ -1,6 +1,8 @@
 # ThisPC Glow · 这台电脑的插件
 
-Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.1**。基于用户提供的一晨辉光 1.3.1 修改，原作者 **1CHEN**。来源与权利说明见 [CREDITS.md](CREDITS.md)。
+简体中文 | [English](README.en.md)
+
+Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.2**。基于用户提供的一晨辉光 1.3.1 修改，原作者 **1CHEN**。来源与权利说明见 [CREDITS.md](CREDITS.md)。
 
 ## 功能
 
@@ -16,7 +18,7 @@ Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.1**
 
 ## 下载与安装
 
-在 [Releases](https://github.com/zuixihuancaibaole-glitch/thispc-glow/releases) 下载 `thispc-glow-v1.5.1.zip`。其中 `thispc-glow` 是 PS 插件，`camera-raw-local-presets` 是 Camera Raw 的独立预设。
+在 [Releases](https://github.com/zuixihuancaibaole-glitch/thispc-glow/releases) 下载 `thispc-glow-v1.5.2.zip`。其中 `thispc-glow` 是 PS 插件，`camera-raw-local-presets` 是 Camera Raw 的独立预设。
 
 已在 **Windows / Photoshop 2026** 实测。清单声明最低 Photoshop 24.0，但未逐一验证其他版本及 macOS。
 
@@ -24,9 +26,19 @@ Photoshop 柔光与十字星光插件的本地修改版，当前版本 **1.5.1**
 2. 解压 ZIP，将其中整个 `thispc-glow` 文件夹放入 Photoshop 安装目录下的 `Plug-ins` 文件夹。确保 `manifest.json` 直接位于插件文件夹内。
 3. 如果已安装相同标识 `com.local.thispc.glow` 的版本，先将旧文件夹移到 `Plug-ins` 外备份，避免重复加载。
 4. 打开 Photoshop，在 **增效工具 → 这台电脑的插件 → 这台电脑的插件** 中打开面板。
-5. 确认面板版本显示 **1.5.1**。该安装方式在本项目测试环境可用；若其他环境不识别，请使用 Adobe 支持的 UXP 开发加载方式加载 `thispc-glow/manifest.json`。
+5. 确认面板版本显示 **1.5.2**。该安装方式在本项目测试环境可用；若其他环境不识别，请使用 Adobe 支持的 UXP 开发加载方式加载 `thispc-glow/manifest.json`。
 
 更新时，保留自己的照片和 PSD，只替换插件文件夹。
+
+## 1.5.2 稳定性优化
+
+- 支持的宿主中，直接更新已有预览像素图层，减少 PNG、智能对象导入与反复替换。
+- 柔光计算分段执行，及时放行界面事件，并提前停止过期预览。
+- 读取 16 位照片时只转换小尺寸预览缓冲，不切换原图位深；重试保留尺寸限制。
+- 预览采用一次历史事务，写入失败回滚，复用已有局部蒙版并释放原生缓冲。
+- 保留现有分辨率、光晕层次和强度，六档预设通过 1.5.1 逐字节效果回归。
+
+本机已用 6000×4000、16 位 RGB 合成图验证新建、切换、预览、保存、再次编辑及选区蒙版，未出现新的闪退。测量、验证范围和剩余限制见 [性能与稳定性说明](docs/performance.md)。
 
 ## 使用
 
@@ -59,7 +71,7 @@ Camera Raw 中采用纹理、清晰度、去朦胧等原生参数近似柔化，
 测试使用 Node.js 内置模块，无第三方依赖。在仓库根目录运行：
 
 ```powershell
-node --test tests/scattering.test.cjs tests/white-mist.test.cjs tests/local-glow.test.cjs tests/highlight-controls.test.cjs
+node --test tests/*.test.cjs
 ```
 
 检查局部光晕衰减、均匀灰场、中性色、三档递进、全黑和零强度、缓存一致性、原图数据不变、旧参数兼容、预设及状态保存，以及蒙版坐标、缩放、羽化、密度、保存时避免重复遮罩、编辑和取消、写入失败保护。高光识别回归覆盖发光范围全段、白色亮光的浓度响应、缓存与首次计算一致性。

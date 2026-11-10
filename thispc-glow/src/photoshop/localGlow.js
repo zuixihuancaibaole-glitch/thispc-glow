@@ -4,6 +4,7 @@
   const original = {...workflow};
   const LocalError = app.Errors?.UserFacingError || Error;
   let pending = null, mask = null;
+  let appliedPreview = null;
   let maskSource = 'layer';
   let stage = '';
   const errorText = error => typeof error === 'string' ? error : error?.message || JSON.stringify(error) || String(error);
@@ -16,6 +17,7 @@
   }
   function resizeMask(data, width, height, targetWidth, targetHeight) {
     if (data.length !== width * height || ![width,height,targetWidth,targetHeight].every(v => Number.isInteger(v) && v > 0)) throw new LocalError('蒙版像素或尺寸无效。');
+    if (width === targetWidth && height === targetHeight) return data;
     const output = new data.constructor(targetWidth * targetHeight);
     for (let y=0; y<targetHeight; y++) for (let x=0; x<targetWidth; x++) {
       output[y*targetWidth+x] = data[Math.min(height-1,Math.floor((y+.5)*height/targetHeight))*width+Math.min(width-1,Math.floor((x+.5)*width/targetWidth))];
@@ -43,7 +45,7 @@
     }
     return null;
   }
-  function clear() { mask = null; pending = null; syncUi(); }
+  function clear() { mask = null; pending = null; appliedPreview = null; syncUi(); }
   function syncUi() {
     const panel = document.getElementById('localMaskWork');
     if (panel) panel.hidden = !mask;
@@ -102,16 +104,20 @@
     previewQueue = previewQueue.catch(() => {}).then(async () => {
       const state = workflow.getState();
       if (!mask || !state) return;
+      const key = [state.work.id,state.layerRoles.bloom.layerId,state.work.width,state.work.height,mask.feather,mask.density].join(':');
+      if (state.previewUsesPixels && appliedPreview?.key === key && appliedPreview.mask === mask) return;
       await app.Batch.runModal('更新局部柔光预览', async () => {
         await app.Documents.selectDocumentById(state.work.id);
         const layer = state.layerRoles.bloom;
         await putMask(state.work.id,layer.layerId,state.work.width,state.work.height,mask.feather*state.work.width/mask.width);
       });
+      appliedPreview = {key,mask};
       syncUi();
     });
     return previewQueue;
   }
   async function removePreviewMask() {
+    appliedPreview = null;
     const state = workflow.getState();
     if (!mask || !state) return;
     await app.Batch.runModal('准备局部柔光保存', async () => {

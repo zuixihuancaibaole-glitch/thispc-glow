@@ -1,0 +1,23 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../thispc-glow');
+const app={Pixels:{makeImageData:(width,height)=>({width,height,data:new Uint8ClampedArray(width*height*4)})}};
+const context=vm.createContext({window:{YCGlow:app},performance,setTimeout,Uint8Array,Uint8ClampedArray,Float32Array});
+for(const name of ['params','quickModes','scattering']) vm.runInContext(fs.readFileSync(path.join(root,'src/glow',name+'.js'),'utf8'),context);
+(async()=>{
+ const source=app.Pixels.makeImageData(400,267);
+ for(let i=0;i<source.data.length;i++) source.data[i]=(i*37)%256;
+ const params=app.GlowQuickModes.paramsFor('white_1_2');
+ let yielded=false;
+ const timer=setTimeout(()=>{yielded=true;},0);
+ const render=app.ScatterAlgorithm.renderPhaseOneCachedAsync||app.ScatterAlgorithm.renderPhaseOneCached;
+ const result=await render(source,params);
+ clearTimeout(timer);
+ assert.ok(yielded,'Preview computation must let Photoshop/UI process events before the render finishes');
+ const sync=app.ScatterAlgorithm.renderPhaseOneCached(source,params);
+ assert.deepEqual(result.bloom.data,sync.bloom.data,'Cooperative rendering must preserve every output pixel');
+ assert.deepEqual(result.xray.data,sync.xray.data);
+ let checks=0;
+ await assert.rejects(()=>render(source,{...params,radius:params.radius+1},result.cache,{isStale:()=>++checks>=2}),/过期|cancel/i);
+ assert.ok(checks>=2,'Stop a stale render between stages');
+ console.log('PASS: UI event delivery, exact synchronous parity and cancellation between render stages.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
