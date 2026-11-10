@@ -64,7 +64,7 @@
             if(cache.has(index)){const value=cache.get(index);cache.delete(index);cache.set(index,value);return value;}
             const file=files.get(name+'-'+index);if(!file)throw new Error('缺少渲染临时数据。');
             const value=new Float32Array(await file.read({format:uxp.storage.formats.binary}));
-            cache.set(index,value);if(cache.size>3)cache.delete(cache.keys().next().value);return value;
+            cache.set(index,value);if(cache.size>2)cache.delete(cache.keys().next().value);return value;
           },
           async set(index,data){
             const key=name+'-'+index;let file=files.get(key);
@@ -128,9 +128,9 @@
       stage='create temporary strip store';
       const stores=await diskStores();
       try{
-        const bounds=app.LocalGlow?.getOutputBounds?.();
+
         stage='render original-resolution strips';
-        await app.TiledScattering.render({width:Number(output.width),height:Number(output.height),params:state.params,bounds,
+        await app.TiledScattering.render({width:Number(output.width),height:Number(output.height),params:state.params,
           createStore:stores.create,readRegion:box=>readSource(output,source,box),
           writeRegion:async box=>{
             const image=await ps().imaging.createImageDataFromBuffer(box.data,{width:box.width,height:box.height,components:4,colorSpace:'RGB',colorProfile:'sRGB IEC61966-2.1',fullRange:true});

@@ -47,11 +47,11 @@
         }, {
             'key': 'drCompression',
             'label': '柔光饱满度',
-            'description': '数值越大，光晕越浓稠'
+            'description': '调节光雾的浓度与饱满度'
         }]
     }, {
         'key': 'structure',
-        'title': '辉光结构',
+        'title': '柔光结构',
         'icon': 'icon-glow.png',
         'params': [{
             'key': 'mainOpacity',
@@ -64,7 +64,7 @@
         }, {
             'key': 'iterations',
             'label': '光晕层次',
-            'description': '数值越大，发光过渡越细腻'
+            'description': '增加扩散层次，改善过渡细节'
         }]
     }, {
         'key': 'color',
@@ -129,7 +129,7 @@
             _0x443ca3(_0x238697, _0x3b782f);
         });
         document['querySelectorAll']('.quick-mode-button,\x20.effect-mode-button,\x20.star-mode-button')['forEach'](_0x1ae7ad => {
-            _0x9e78fa(_0x1ae7ad, _0x3b782f);
+            _0x9e78fa(_0x1ae7ad, _0x17f02b || _0x374caf());
         });
         document['querySelectorAll']('.user-preset-select,\x20.user-preset-button')['forEach'](_0x3223f0 => {
             const _0x57aa23 = _0x42bc7d('userPresetSelect')?.['value'] || _0x2bcade;
@@ -247,14 +247,7 @@
         };
     }
 
-    function _0x4db714(_0x4e5ea4 = 'manual') {
-        const _0x78bf6e = _0x8d592b();
-        console['log']('[一晨柔光镜][UI]\x20UXP\x20viewport', {
-            'phase': _0x4e5ea4,
-            ..._0x78bf6e
-        });
-        return _0x78bf6e;
-    }
+    function _0x4db714() {}
 
     function _0xb22116() {
         if (_0x352aee || typeof window['addEventListener'] !== 'function') return;
@@ -324,36 +317,7 @@
         };
     }
 
-    function _0x22bbb1(_0x43a388, _0x5a0c17 = 'after-view-change') {
-        const _0x461aeb = _0x42bc7d('homeView');
-        const _0x42c5e6 = [
-            ['app\x20shell', document['querySelector']('.app-shell')],
-            ['scroll\x20content', _0x42bc7d('mainScroll')],
-            ['home\x20view', _0x461aeb],
-            ['hero\x20card', document['querySelector']('.home-brand-hero')],
-            ['hero\x20logo', document['querySelector']('.home-brand-hero\x20.brand-star')],
-            ['home\x20actions\x20container', document['querySelector']('.home-actions')],
-            ['New\x20card', _0x42bc7d('newGlowButton')],
-            ['Edit\x20card', _0x42bc7d('editGlowButton')],
-            ['social\x20links', document['querySelector']('#homeView\x20.social-section')],
-            ['footer', document['querySelector']('#homeView\x20.designer-credit')]
-        ];
-        _0x4db714(_0x43a388 + ':' + _0x5a0c17);
-        console['log']('[一晨柔光镜][UI]\x20current\x20view', {
-            'viewName': _0x43a388,
-            'phase': _0x5a0c17
-        });
-        console['log']('[一晨柔光镜][UI]\x20home\x20view\x20exists', Boolean(_0x461aeb));
-        console['log']('[一晨柔光镜][UI]\x20home\x20view\x20className', _0x461aeb?.['className'] || '');
-        console['log']('[一晨柔光镜][UI]\x20home\x20view\x20hidden', Boolean(_0x461aeb?.['hidden']));
-        console['log']('[一晨柔光镜][UI]\x20home\x20view\x20child\x20count', Number(_0x461aeb?.['childElementCount']) || 0x0);
-        console['log']('[一晨柔光镜][UI]\x20hero\x20exists', Boolean(document['querySelector']('.home-brand-hero')));
-        console['log']('[一晨柔光镜][UI]\x20new\x20card\x20exists', Boolean(_0x42bc7d('newGlowButton')));
-        console['log']('[一晨柔光镜][UI]\x20edit\x20card\x20exists', Boolean(_0x42bc7d('editGlowButton')));
-        _0x42c5e6['forEach'](([_0x596287, _0x432b6e]) => {
-            console['log']('[一晨柔光镜][UI]\x20element\x20layout', _0x3484a1(_0x596287, _0x432b6e));
-        });
-    }
+    function _0x22bbb1() {}
 
     function _0x1c1e5a() {
         document['querySelectorAll']('.brand-star')['forEach'](_0x18b315 => {
@@ -821,10 +785,10 @@
         }
         _0x591f29 = ![];
         _0x2eeb6f();
-        _0x5acd4a(_0x311d4c, {
-            'reason': _0x4ef9a2,
-            'inputAt': _0x5a26d3
-        });
+        _0x5c59c6 = setTimeout(() => {
+            _0x5c59c6=null;
+            _0x5acd4a(_0x311d4c, {'reason':_0x4ef9a2,'inputAt':_0x5a26d3});
+        }, 90);
     }
 
     function _0x534566(_0x4922a9) {
@@ -968,7 +932,7 @@
 
     function _0x20d833(_0x3f7234) {
         if (!_0x26608c['Expiry']['allowAction']()) return;
-        if (_0x17f02b || _0x5ca467() || _0x374caf()) return;
+        if (_0x17f02b || _0x374caf()) return;
         const _0x268d54 = _0x482208();
         const _0x2a387a = _0x26608c['GlowState']['selectMode'](_0x268d54, _0x3f7234);
         const _0x2a8438 = _0x2a387a['activeMode'] !== _0x193f3b;
@@ -1378,7 +1342,7 @@
 
     function _0x29fbcc(_0x2692cd) {
         if (!_0x26608c['Expiry']['allowAction']()) return;
-        if (_0x17f02b || _0x5ca467() || _0x374caf()) return;
+        if (_0x17f02b || _0x374caf()) return;
         const _0x1d6127 = _0x26608c['UserPresets']?.['get']?.(_0x2692cd);
         if (!_0x1d6127) {
             _0x9380d6();

@@ -20,6 +20,7 @@ async function render(model,bounds=null,isCancelled){const output=new Uint16Arra
  assert.ok(Math.abs(after-before)/before<.001,'Neutral unclipped fixture conserves linear-light energy');
  let checks=0;await assert.rejects(()=>render(1,null,()=>++checks>4),/取消/);
  assert.equal(opened,closed,'Release all intermediate stores on success and cancellation');
- assert.ok(peakBytes<=262144*3*4,'Strip buffers have a fixed upper bound');
+ assert.ok(peakBytes<=1048576*3*4,'Strip buffers have a fixed upper bound');
+ assert.equal(Math.ceil(4000/app.TiledScattering.stripRows(6000)),32,'Batch native pixel writes instead of 125 small calls');
  console.log('PASS: original-resolution strips, bounded buffers, ROI/whole-image parity, optical peak/halo/energy and cancellation cleanup.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,4 +1,4 @@
-(() => {
+((Math) => {
   const app = window.YCGlow = window.YCGlow || {};
   const linear = Float32Array.from({length: 256}, (_, i) => {
     const value = i / 255;
@@ -70,13 +70,15 @@
     const white = params.whiteMist / 100;
     // Exponential mapping keeps the entire 1–35 emission-range slider responsive.
     const knee = 0.48 * Math.exp(-5 * params.threshold) * (1 - white * 0.25) / (1 + params.drCompression / 160);
+    // A broader white-mist pedestal prevents nonlinear emission weights from reversing soft edges.
+    const base = params.scatterModel === 2 ? Math.min(.9, white * (.15 + 2.7 * white)) : white * .15;
     for (let pixel = 0; pixel < count; pixel++) {
       const index = pixel * 4;
       const red = linear[source.data[index]], green = linear[source.data[index + 1]], blue = linear[source.data[index + 2]];
       if (red === undefined || green === undefined || blue === undefined) throw new Error('Invalid RGBA image pixel values.');
       const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
       const t = clamp((luminance - knee) / 0.25, 0, 1);
-      const weight = white * 0.15 + (1 - white * 0.15) * t * t * (3 - 2 * t);
+      const weight = base + (1 - base) * t * t * (3 - 2 * t);
       light[pixel * 3] = red * weight;
       light[pixel * 3 + 1] = green * weight;
       light[pixel * 3 + 2] = blue * weight;
@@ -135,7 +137,7 @@
     const params = app.GlowParams.normalizeParams(rawParams);
     const sourceKey = `${params.threshold}|${params.drCompression}|${params.whiteMist}`;
     const geometryKey = `${sourceKey}|${params.radius}|${params.iterations}|${params.coreOpacity}|${params.scatterModel}`;
-    const compatible = previous?.version === 'scatter-v1.2' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
+    const compatible = previous?.version === 'scatter-v1.3' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
     const sourceHit = compatible && previous.sourceKey === sourceKey;
     const geometryHit = sourceHit && previous.geometryKey === geometryKey;
     const prepared = sourceHit ? previous.prepared : yield* prepare(source, params);
@@ -168,7 +170,7 @@
     const finished = now();
     return {
       xray: prepared.xray, bloom,
-      cache: {version:'scatter-v1.2', width:source.width, height:source.height, sourceData:source.data, sourceKey, geometryKey, prepared, halo},
+      cache: {version:'scatter-v1.3', width:source.width, height:source.height, sourceData:source.data, sourceKey, geometryKey, prepared, halo},
       cacheMode: geometryHit ? 'compose' : sourceHit ? 'geometry' : 'full',
       sourceRebuilt: !sourceHit, geometryRebuilt: !geometryHit,
       timing: {sourceStageMs:sourceDone-started, blurStageMs:geometryDone-sourceDone, composeMs:finished-geometryDone, totalAlgorithmMs:finished-started, totalMs:finished-started},
@@ -196,4 +198,4 @@
     } finally { stages.return(); }
   }
   app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached, renderPhaseOneCachedAsync, rotateHue});
-})();
+})(Math);

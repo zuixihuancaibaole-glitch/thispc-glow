@@ -1,4 +1,4 @@
-(() => {
+((Math) => {
   const app=window.YCGlow;
   const clamp=(v,l,h)=>Math.max(l,Math.min(h,v));
   const linear=v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4;
@@ -17,6 +17,7 @@
     for(const k of ['left','top','right','bottom'])if(!Number.isFinite(bounds[k]))throw new Error('局部输出范围无效。');
     return {left:clamp(Math.floor(bounds.left-padding),0,width),top:clamp(Math.floor(bounds.top-padding),0,height),right:clamp(Math.ceil(bounds.right+padding),0,width),bottom:clamp(Math.ceil(bounds.bottom+padding),0,height)};
   }
+  const stripRows=width=>Math.max(1,Math.min(128,Math.floor(1048576/width)));
   async function render({width,height,params:raw,readRegion,writeRegion,createStore,bounds=null,scale=Math.max(width,height)/2000,isCancelled=()=>false,onProgress=()=>{}}){
     if(![width,height].every(n=>Number.isInteger(n)&&n>0)||width*height>250000000)throw new Error('原尺寸输出支持 1–25000 万像素。');
     const params=app.GlowParams.normalizeParams(raw);
@@ -26,7 +27,7 @@
     const target=region(width,height,bounds,0),area=region(width,height,bounds,support);
     const w=area.right-area.left,h=area.bottom-area.top;
     if(w<=0||h<=0||target.right<=target.left||target.bottom<=target.top)return {pixels:0,support};
-    const rows=Math.max(1,Math.min(32,Math.floor(262144/w))),stride=w*3;
+    const rows=stripRows(w),stride=w*3;
     let lastYield=performance.now();
     async function checkpoint(){
       if(isCancelled())throw new Error('原尺寸渲染已取消，原光效未被替换。');
@@ -36,7 +37,7 @@
     async function store(name){const result=await createStore(name,w,h,rows);stores.push(result);return result;}
     try{
       const light=await store('light'),halo=await store('halo'),a=await store('horizontal'),b=await store('vertical');
-      const white=params.whiteMist/100,knee=.48*Math.exp(-5*params.threshold)*(1-white*.25)/(1+params.drCompression/160);
+      const white=params.whiteMist/100,base=params.scatterModel===2?Math.min(.9,white*(.15+2.7*white)):white*.15,knee=.48*Math.exp(-5*params.threshold)*(1-white*.25)/(1+params.drCompression/160);
       for(let y=0;y<h;y+=rows){
         await checkpoint();const count=Math.min(rows,h-y);
         const original=await readRegion({left:area.left,top:area.top+y,width:w,height:count});
@@ -44,7 +45,7 @@
         const max=original instanceof Uint16Array?65535:255,output=new Float32Array(w*count*3);
         for(let p=0;p<w*count;p++){
           const r=linear(original[p*4]/max),g=linear(original[p*4+1]/max),blue=linear(original[p*4+2]/max);
-          const t=clamp((.2126*r+.7152*g+.0722*blue-knee)/.25,0,1),weight=white*.15+(1-white*.15)*t*t*(3-2*t);
+          const t=clamp((.2126*r+.7152*g+.0722*blue-knee)/.25,0,1),weight=base+(1-base)*t*t*(3-2*t);
           output[p*3]=r*weight;output[p*3+1]=g*weight;output[p*3+2]=blue*weight;
         }
         await light.set(y/rows,output);
@@ -110,5 +111,5 @@
       onProgress(1);return {pixels:w*h,support,target,area,stripRows:rows};
     }finally{for(const value of stores)await value.close();}
   }
-  app.TiledScattering=Object.freeze({render,plan,region});
-})();
+  app.TiledScattering=Object.freeze({render,plan,region,stripRows});
+})(Math);

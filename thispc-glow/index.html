@@ -4,22 +4,22 @@
     <meta charset="utf-8" />
     <title>这台电脑的插件</title>
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="minimal.css" />
-    <script>window.__YC_GLOW_MANIFEST_VERSION__ = "1.6.0";</script>
+
+    <script>window.__YC_GLOW_MANIFEST_VERSION__ = "1.7.0";</script>
   </head>
   <body data-view="home">
     <main class="app-shell">
       <header class="app-toolbar">
-        <div class="toolbar-brand" aria-label="这台电脑的插件"><strong>这台电脑的插件</strong></div>
+        <div class="toolbar-brand" aria-label="这台电脑的插件"><strong>柔光</strong></div>
         <span id="workVersionLabel" class="toolbar-version-label" hidden></span>
       </header>
 
       <p id="expiryNotice" class="expiry-notice" role="status" hidden></p>
       <div id="mainScroll" class="main-scroll">
       <section id="homeView" class="view is-active">
-        <section class="brand-hero home-brand-hero" aria-label="光效工具"><p class="home-eyebrow">光效工具</p><h1 class="home-title">柔光工具</h1><p class="home-subtitle">调整光线，保留细节。</p></section>
+        <section class="brand-hero home-brand-hero" aria-label="光效工具"><p class="home-eyebrow">THISPC GLOW</p><h1 class="home-title">柔光工具</h1><p class="home-subtitle">柔和光线，自然过渡。</p></section>
 
-        <label class="local-glow-tools optical-choice"><input id="opticalScatter" type="checkbox" checked /> 光学柔光：重分配光能，保留原尺寸源图</label>
+        <label class="optical-choice"><input id="opticalScatter" type="checkbox" checked /> 光学柔光 · 保留原尺寸源图</label>
         <section class="home-actions" aria-label="开始使用">
           <div class="home-action-glow home-action-glow-new">
             <div id="newGlowButton" class="home-action-card home-action-new" role="button" tabindex="0">
@@ -51,20 +51,8 @@
           </div>
         </section>
 
-        <section class="local-glow-tools" aria-label="局部柔光">
-          <h2>局部柔光</h2>
-          <div class="local-mask-source"><button id="localFromMaskButton" class="quick-mode-button is-active" aria-pressed="true">当前图层蒙版</button><button id="localFromSelectionButton" class="quick-mode-button" aria-pressed="false">当前选区</button></div>
-          <label>边缘羽化（px） <input id="localMaskFeather" type="number" min="0" max="1000" step="1" value="20" /></label>
-          <button id="newLocalGlowButton" class="action-button primary-button">创建局部柔光</button>
-          <p>白色区域生效，黑色区域保护；原蒙版不变。</p>
-          <p>Camera Raw 18.5：在蒙版的“调整预设”选择 ThisPC 柔化。它是原生近似效果。</p>
-        </section>
+        <section class="camera-raw-note"><h2>Camera Raw 局部柔化</h2><p>选中 Camera Raw 蒙版，在调整预设中选择 ThisPC 柔化。</p><p class="note-detail">轻柔 · 标准 · 浓柔</p></section>
         <button id="recoverParamsButton" class="action-button secondary-button" disabled>恢复上次未保存参数</button>
-        <footer class="designer-credit">
-          <span class="designer-credit-name">原作者 1CHEN · 本机修改副本</span>
-          <span id="homeVersionLabel" class="designer-credit-version" hidden></span>
-          <span id="expiryDateLabel" class="expiry-date-label">本机副本 · 无到期日期</span>
-        </footer>
       </section>
 
       <section id="workView" class="view">
@@ -73,7 +61,6 @@
           <p id="workInfo">等待 Photoshop 返回工作文档信息。</p>
         </div>
 
-        <section id="localMaskWork" class="local-glow-tools" hidden><h2>局部蒙版</h2><label>边缘羽化（px） <input id="workMaskFeather" type="number" min="0" max="1000" step="1" value="20" /></label><p>仅蒙版区域生效，保存后仍可绘制蒙版。</p></section>
         <div id="paramsPanel" class="params-panel" aria-label="光效参数"></div>
 
         <div class="preview-performance dev-only" aria-live="polite">
@@ -92,7 +79,7 @@
       <section id="workBottomDock" class="work-bottom-dock" hidden>
         <div id="userPresetMount" class="user-preset-mount" aria-label="用户预设"></div>
 
-        <div class="button-row" aria-label="效果对比"><button id="compareOriginalButton" class="action-button secondary-button">按住看原图</button><button id="restorePreviousButton" class="action-button secondary-button" disabled>恢复上一次参数</button></div>
+        <div class="button-row" aria-label="参数恢复"><button id="restorePreviousButton" class="action-button secondary-button" disabled>恢复上一次参数</button></div>
         <div class="button-row" aria-label="光效编辑操作">
           <div id="resetButton" class="action-button secondary-button compact" role="button" tabindex="0">重置</div>
           <div id="cancelButton" class="action-button secondary-button compact" role="button" tabindex="0">取消</div>
@@ -158,7 +145,6 @@
     <script src="src/ui/homeLinks.js"></script>
     <script src="src/glow/expiry.js"></script>
     <script src="src/ui/panel.js"></script>
-    <script src="src/photoshop/localGlow.js"></script>
     <script src="src/ui/workTools.js"></script>
     <script src="src/main.js"></script>
   </body>

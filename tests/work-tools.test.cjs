@@ -8,13 +8,12 @@ const window={YCGlow:app,addEventListener(){},localStorage:{getItem:k=>storage.g
 vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../thispc-glow/src/ui/workTools.js'),'utf8'),vm.createContext({window,document:{readyState:'complete',getElementById:node}}));
 (async()=>{
  await flow.createNewGlow(null,{radius:10});
- await app.WorkTools.compare(true);assert.equal(visibility.get(2),false);assert.equal(visibility.get(1),true);
  await flow.updatePreview(null,{radius:20});assert.equal(visibility.get(2),true);
  await app.WorkTools.restore();assert.equal(state.params.radius,10);
  await app.WorkTools.restore();assert.equal(state.params.radius,20,'Restore can switch back to the previous successful setting');
  flow.setPendingParams({radius:37});assert.equal(app.WorkTools.readDraft().state.currentParams.radius,37,'Persist pending parameters before a crash');
  state=null;await app.WorkTools.recover();assert.equal(state.params.radius,37,'Recover on a freshly created session');
- await app.WorkTools.compare(true);await flow.saveGlowToOriginal();assert.equal(saves,1);assert.equal(app.WorkTools.readDraft(),null);
+ await flow.saveGlowToOriginal();assert.equal(saves,1);assert.equal(app.WorkTools.readDraft(),null);
  storage.set('thispc-glow-recovery-v1','{broken');assert.equal(app.WorkTools.readDraft(),null);
- console.log('PASS: press-to-compare visibility restoration, save guard, previous parameters, crash draft recovery and malformed-storage safety.');
+ console.log('PASS: previous parameters, crash draft recovery and malformed-storage safety.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

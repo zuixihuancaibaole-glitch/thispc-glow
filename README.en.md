@@ -2,72 +2,56 @@
 
 [简体中文](README.md) | English
 
-A local Photoshop plugin for black mist and white mist effects. Version **1.6.0** adds original-resolution editable output, optical scattering, local computation, comparison and parameter recovery. Derived from the user-supplied **Yichen Glow 1.3.1**, originally authored by **1CHEN**; see [Credits and rights](#credits-and-rights).
+A locally modified Photoshop black-mist and white-mist plugin, version **1.7.0**. A minimal graphite interface uses blue accents, clearer hierarchy and larger descriptions. Source and authorship records remain in [CREDITS.md](CREDITS.md); the panel shows the version only.
 
 ## Features
 
-- Black mist and white mist presets in **1/8, 1/4 and 1/2** strengths.
-- Highlight-driven, multi-scale diffusion that retains the light source's color.
-- Controls for highlight range, haze density, intensity, spread, diffusion layers, hue and saturation.
-- Local glow from a Photoshop pixel mask or selection, with editable edge feathering.
-- Local user presets, original-resolution Smart Objects and subsequent editing. Cross-star effects have been removed.
-- A minimal dark interface with muted green accents.
-- Three native Camera Raw 18.5 mask-softening presets: light, standard and strong.
+- Black and white mist in **1/8, 1/4 and 1/2**, custom controls and user presets.
+- Optical diffusion and classic Screen glow.
+- 1200 px previews, native-resolution final rendering and editable Smart Objects retaining the full-depth source.
+- Latest-request scheduling, previous settings and unsaved-parameter recovery.
+- **Hold-to-compare and Photoshop local-glow controls are removed in 1.7.0.** Local softening is available through the included Camera Raw mask presets only.
+- Three Camera Raw 18.5 native mask presets: light, standard and strong.
 
-“ThisPC” is the project name. It does not mean hardware locking. This copy has no usage expiration date. The panel currently uses Chinese labels.
+This copy has no usage expiry. “ThisPC” is a project name, not hardware locking. Panel labels are currently Chinese.
 
-## Download and install
+## Changes in 1.7.0
 
-Download `thispc-glow-v1.6.0.zip` from [Releases](https://github.com/zuixihuancaibaole-glitch/thispc-glow/releases). The `thispc-glow` folder contains the Photoshop plugin; `camera-raw-local-presets` contains separate Camera Raw presets.
+Strong optical white mist uses a broader participation weight so nonlinear highlight extraction does not create narrow reversed edges at low-contrast landscape boundaries. Preview and native-depth output use the same rule; classic rendering remains pixel-compatible.
 
-1. Save your images and exit Photoshop.
-2. Extract the ZIP and copy the entire `thispc-glow` folder into Photoshop's `Plug-ins` directory. `manifest.json` must be directly inside the plugin folder.
-3. Move any older copy with the same ID, `com.local.thispc.glow`, outside `Plug-ins` as a backup to avoid duplicate loading.
-4. Start Photoshop and open **Plugins → 这台电脑的插件 → 这台电脑的插件**. Confirm version **1.6.0**.
+Performance work retains preview dimensions, diffusion layers and final precision. Input events coalesce over 90 ms, controls stay usable during computation and stale requests are canceled. Larger bounded strips reduce 24 MP output writes from 125 to 32. The UI removes redundant CSS, forced layout diagnostics and ornamental rendering; descriptions use 13 px text.
 
-This installation method has been tested on Windows with Photoshop 2026. If another environment does not recognize it, use Adobe's supported UXP developer-loading workflow with `thispc-glow/manifest.json`. The manifest declares Photoshop 24.1 or later; other versions and macOS have not been individually verified. Pixel operations require a compatible Imaging API.
+See [implementation and validation notes](docs/upgrades-1.7.md) (Chinese).
 
-Updating replaces the plugin files. Keep your own PSD files, photos and presets.
+## Install
+
+Download `thispc-glow-v1.7.0.zip` from [Releases](https://github.com/zuixihuancaibaole-glitch/thispc-glow/releases).
+
+1. Save your work and exit Photoshop.
+2. Back up the older plugin with ID `com.local.thispc.glow` outside `Plug-ins`.
+3. Copy the ZIP's entire `thispc-glow` folder into Photoshop's `Plug-ins` directory. `manifest.json` must be directly inside the plugin folder.
+4. Restart and open **Plugins → 这台电脑的插件**. Confirm **v1.7.0**.
+
+Test environment: Windows / Photoshop 2026 (27.9.1). Minimum declared host: Photoshop 24.1. Other versions and macOS are not individually verified. Adobe's supported UXP developer-loading workflow is an alternative if direct loading is unavailable.
 
 ## Use
 
-Open an RGB 8-bit or 16-bit image and choose **创建光效** (Create effect). Select a black or white mist grade, adjust the controls, then choose **保存** (Save) to insert the result as a Smart Object. Save your Photoshop document separately.
+Open an RGB 8-bit or 16-bit image and choose **创建光效** (Create effect). Adjust a preset and choose **保存** (Save) for an editable native-resolution Smart Object. Save the Photoshop document separately. To revise an effect, select its layer and choose **编辑光效** (Edit effect).
 
-Start with **1/4 黑柔** (black mist). White mist produces stronger veiling and softer local contrast. Reduce **柔光强度** (Glow intensity) or the output layer's opacity if needed. To revise an existing effect, select its layer and choose **编辑光效** (Edit effect).
+Start with black mist 1/4. White mist 1/2 has stronger veiling; reduce intensity or the output layer opacity if needed. The home optical option is enabled by default; uncheck it for classic Screen glow. Existing saved objects retain their renderer. Previously discarded source detail cannot be reconstructed.
 
-For local glow, first select a layer with an enabled pixel mask, or create a selection. Under **局部柔光** (Local glow), select the corresponding source, set feathering and choose **创建局部柔光**. The saved effect has its own editable mask; the source mask is preserved.
+Recovery restores parameters only; reopen the corresponding photo yourself. It does not replace PSD saving. Existing outer layer masks remain in saved files, but the plugin no longer provides Photoshop local-glow creation, capture or feathering controls.
 
-In Camera Raw 18.5, install the three `.xmp` files into `%APPDATA%\Adobe\CameraRaw\LocalCorrections` while Photoshop is closed. Create or select a mask, then choose a `ThisPC 局部柔化` preset from the mask's **Preset** menu. Applying one replaces that mask's adjustment settings, so use a new or duplicated mask. Adjust the brush feathering or native gradients for softer boundaries. These presets approximate softening with native controls; they cannot run the Photoshop scattering algorithm inside Camera Raw. Camera Raw masks and Photoshop layer masks remain separate.
+## Camera Raw local softening
 
-## What changed in 1.6.0
+While Photoshop is closed, copy the three `.xmp` files in `camera-raw-local-presets` into `%APPDATA%\Adobe\CameraRaw\LocalCorrections`. Restart, create or select a Camera Raw mask and choose a `ThisPC 局部柔化` preset from that mask's adjustment-preset menu.
 
-- New effects default to optical scattering: a signed, approximately linear-light redistribution lowers source peaks and spreads light into nearby pixels. Uncheck the optical option on the home screen for classic Screen glow. Existing mist objects retain their renderer.
-- Previews remain limited to a 1200 px long edge. Final saves render the retained full source at its native dimensions using bounded strips and disk caches, then embed an editable Smart Object. A 16-bit source remains 16-bit.
-- The older renderer now yields cooperatively too. Pending parameters survive a restart; recovery restores settings only, so reopen the photo and reselect local masks or selections yourself.
-- Local rendering includes the entire kernel support around the mask, preserving light from outside it. A very wide halo may still require the whole frame.
-- Hold **按住看原图** to compare; release to restore the exact layer visibility. **恢复上一次参数** restores the previous successful settings. Save and update automatically leave comparison mode.
-- Cross-star controls, presets and algorithms are removed. Existing cross-star pixels remain untouched and cannot be re-edited with this version.
+Applying a preset replaces the mask's adjustment values, so use a new or duplicated mask. Native brush feathering and radial/linear gradients control the transition. These presets approximate softening with native Camera Raw controls; they cannot run the Photoshop scattering algorithm. See the [preset guide](camera-raw-local-presets/README.md).
 
-Full-resolution output takes more time and temporary disk space and produces larger PSDs. Previously saved low-resolution objects cannot regain source detail that was already discarded. See [implementation and validation notes](docs/upgrades-1.6.md) (Chinese).
+## Validation and limits
 
-## Tests
+Run `node --test tests/*.test.cjs` from the repository root. No third-party test dependencies are required. Tests cover classic reference-pixel parity, smooth strong-white boundaries, preview/native-depth parity, request coalescing, cancellation, rollback, native-buffer disposal and state recovery. All 14 test files pass. Native checks on the stated Windows host cover 16-bit Smart Object saving/re-editing and 6000×4000 output.
 
-No third-party test dependencies are required. Run from the repository root:
+This is an uncalibrated post-processing simulation. Strength labels do not guarantee equivalence to physical filters. Wide-gamut calibration, cross-version/macOS and long-duration stability remain unverified. Linear-light processing uses an sRGB approximation and cannot recover clipped detail. Transparent source pixels need a background. Native-size output supports up to 250 megapixels and takes more temporary disk space, time and PSD storage.
 
-```powershell
-node --test tests/*.test.cjs
-```
-
-Tests cover mist strength progression, neutral color, highlight controls, caching, saved state, local masks and feathering, original bit-depth preservation, bounded reads, native-buffer disposal, preview transactions and rollback, stale requests, UI event delivery and reference-pixel parity.
-
-## Limits
-
-This is a post-processing simulation, not a calibrated replacement for a physical diffusion filter. Strength labels do not guarantee equivalence to a particular brand. The new optical mode approximates energy redistribution; classic Screen mode remains additive. Neither can recover clipped detail. Linear-light processing uses an sRGB-based approximation and is not calibrated for wide-gamut profiles. Only the preview is capped at a 1200 px long edge. Native-resolution output supports up to 250 megapixels; transparent source pixels require a background first. Cooperative scheduling improves responsiveness but does not guarantee shorter standalone algorithm wall time.
-
-Photoshop 2026 native testing with a 1600×1066 RGB 16-bit synthetic image covered original-resolution saving, PSD reopen, re-editing, consecutive preset changes, previous-parameter restoration and updating the same Smart Object. Embedded PSB headers confirm full dimensions and 16-bit data after re-editing. A 6000×4000 RGB 16-bit image also completed native-resolution saving; this black-mist 1/8 sample took about 3 minutes 20 seconds including computation, PSB saving and placement. Preview updates remain separate and much smaller. These are short synthetic tests, not a long-duration stability guarantee.
-
-Cross-version/macOS compatibility, every wide-gamut workflow and long-duration crash stability have not been fully tested. The repository still contains upstream obfuscated scripts. See the [Chinese changelog](CHANGELOG.md) for prior releases.
-
-## Credits and rights
-
-Original author: **1CHEN**, Yichen Glow 1.3.1. This is an unofficial modified copy and is not endorsed by the original author. Original code and assets retain their original rights. No explicit open-source license was found in the supplied files, so this repository does not add an MIT, Apache or other license for the whole project. Public availability does not imply unrestricted redistribution or relicensing. See [CREDITS.md](CREDITS.md).
+Original author: **1CHEN**, Yichen Glow 1.3.1. This is an unofficial modification. Original code and assets retain their rights; this project adds no blanket open-source license. See [CREDITS.md](CREDITS.md).
