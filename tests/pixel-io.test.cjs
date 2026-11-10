@@ -16,6 +16,8 @@ for(const file of ['documents.js','pixels.js'])vm.runInContext(fs.readFileSync(p
  assert.equal(conversions,0,'Reading a small preview must never convert the 16-bit source document');
  assert.equal(depth,16);assert.equal(disposed,1);
  assert.equal(calls[0].componentSize,8,'Request converted preview bytes from Imaging API');
+ let writes=0;photoshop.imaging.createImageDataFromBuffer=async(data,options)=>{assert.equal(options.colorProfile,'sRGB IEC61966-2.1','Declare source profile for cross-depth writes');return {dispose(){data.fill(0);disposed++;}};};photoshop.imaging.putPixels=async()=>{writes++;};
+ const cached=new Uint8Array([1,2,3,255]);await app.Pixels.writeLayerPixels(1,2,{width:1,height:1,data:cached});assert.deepEqual([...cached],[1,2,3,255],'Disposing native data must not invalidate cached pixels');assert.equal(writes,1);assert.equal(disposed,2);
  failRead=true;calls=[];
  await assert.rejects(()=>app.Pixels.readDocumentComposite({documentId:1,width:6000,height:4000,targetWidth:1200,targetHeight:800}));
  assert.ok(calls.every(options=>options.targetSize),'A failed bounded read must never fall back to full-resolution allocation');

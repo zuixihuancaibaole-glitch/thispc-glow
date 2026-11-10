@@ -109,8 +109,9 @@
       totalWeight += weight;
     }
     for (let i = 0; i < halo.length; i++) {
-      const value = halo[i] / totalWeight - light[i] - 1e-7;
-      halo[i] = value > 0 ? value : 0;
+      const delta = halo[i] / totalWeight - light[i];
+      const value = delta - 1e-7;
+      halo[i] = params.scatterModel === 2 ? (Math.abs(delta)<1e-7?0:delta) : value > 0 ? value : 0;
     }
     return halo;
   }
@@ -133,7 +134,7 @@
     const started = now();
     const params = app.GlowParams.normalizeParams(rawParams);
     const sourceKey = `${params.threshold}|${params.drCompression}|${params.whiteMist}`;
-    const geometryKey = `${sourceKey}|${params.radius}|${params.iterations}|${params.coreOpacity}`;
+    const geometryKey = `${sourceKey}|${params.radius}|${params.iterations}|${params.coreOpacity}|${params.scatterModel}`;
     const compatible = previous?.version === 'scatter-v1.2' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
     const sourceHit = compatible && previous.sourceKey === sourceKey;
     const geometryHit = sourceHit && previous.geometryKey === geometryKey;
@@ -154,12 +155,12 @@
         const index = pixel * 4 + channel;
         const component = channel === 0 ? red : channel === 1 ? green : blue;
         const diffuseColor = gray + (component - gray) * saturation;
-        const diffusion = diffuseColor > 0 ? diffuseColor : 0;
-        if (diffusion === 0) { bloom.data[index] = 0; continue; }
+        const optical = params.scatterModel === 2;
+        const diffusion = optical ? diffuseColor : diffuseColor > 0 ? diffuseColor : 0;
+        if (diffusion === 0) { bloom.data[index] = optical ? source.data[index] : 0; continue; }
         const original = source.data[index] / 255;
-        const target = encode(clamp(linear[source.data[index]] + diffusion * gain, 0, 1));
-        // shortcut: Screen-only layers cannot attenuate source peaks; use full-image linear compositing for optical calibration.
-        bloom.data[index] = original < 1 ? clamp((target - original) / (1 - original), 0, 1) * 255 : 0;
+        const target = encode(clamp(linear[source.data[index]] + diffusion * (optical?Math.min(.95,gain):gain), 0, 1));
+        bloom.data[index] = optical ? target * 255 : original < 1 ? clamp((target - original) / (1 - original), 0, 1) * 255 : 0;
       }
       bloom.data[pixel * 4 + 3] = 255;
       if ((pixel & 8191) === 8191) yield;
@@ -194,5 +195,5 @@
       }
     } finally { stages.return(); }
   }
-  app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached, renderPhaseOneCachedAsync});
+  app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached, renderPhaseOneCachedAsync, rotateHue});
 })();

@@ -73,7 +73,7 @@ assert.equal(render(p,lamp,{...first.cache,version:'scatter-v1'}).sourceRebuilt,
 assert.equal(render({...p,radius:p.radius+10},lamp,first.cache).geometryRebuilt,true);
 assert.deepEqual(render({...p,mainOpacity:0}).bloom.data.filter((_,i)=>i%4!==3),new Uint8ClampedArray(128*96*3));
 assert.deepEqual(lamp.data,original);
-assert.equal(api.GlowAlgorithm.renderPhaseOneCached(lamp,{...p,effectMode:1}).star,true);
+assert.throws(()=>api.GlowAlgorithm.renderPhaseOneCached(lamp,{...p,effectMode:1}),/移除/);
 // Older saved objects omit scatterModel and must keep their existing renderer.
 for(const mode of ['soft_1_8','soft_1_4','soft_1_2']) {
   const legacy={...api.GlowQuickModes.paramsFor(mode),scatterModel:0};

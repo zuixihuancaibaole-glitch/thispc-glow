@@ -2,11 +2,11 @@
   "manifestVersion": 5,
   "id": "com.local.thispc.glow",
   "name": "这台电脑的插件",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "main": "index.html",
   "host": {
     "app": "PS",
-    "minVersion": "24.0.0"
+    "minVersion": "24.1.0"
   },
   "entrypoints": [
     {

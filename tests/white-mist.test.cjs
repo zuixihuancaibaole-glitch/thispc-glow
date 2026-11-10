@@ -71,7 +71,7 @@ for (const mode of ['soft_1_8', 'soft_1_4', 'soft_1_2']) {
   const after = api.GlowAlgorithm.renderPhaseOne(source, params);
   assert.deepEqual(after.bloom.data, before.bloom.data, `${mode}: black output changed`);
 }
-assert.equal(api.GlowAlgorithm.renderPhaseOneCached(source, {effectMode: 1, whiteMist: 50}), starResult);
+assert.throws(()=>api.GlowAlgorithm.renderPhaseOneCached(source,{effectMode:1,whiteMist:50}),/移除/);
 const base = api.GlowQuickModes.paramsFor('white_1_4');
 const first = api.GlowAlgorithm.renderPhaseOneCached(source, base);
 const cached = api.GlowAlgorithm.renderPhaseOneCached(source, {...base, whiteMist: 50}, first.cache);

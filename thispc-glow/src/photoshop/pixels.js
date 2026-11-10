@@ -164,7 +164,7 @@
                 right: width,
                 bottom: height
             },
-            colorSpace: 'RGB',
+            colorSpace: 'RGB', colorProfile: 'sRGB IEC61966-2.1',
             componentSize: 8,
             applyAlpha: true,
             targetSize: {
@@ -196,12 +196,13 @@
         const {
             imaging
         } = _0x164a8c.Batch.requirePhotoshop();
-        const data = new Uint8Array(image.data.buffer, image.data.byteOffset, image.data.byteLength);
+        // Native image buffers must not take ownership of the reusable renderer cache.
+        const data = new Uint8Array(image.data);
         const native = await imaging.createImageDataFromBuffer(data, {
             width: image.width,
             height: image.height,
             components: 4,
-            colorSpace: 'RGB'
+            colorSpace: 'RGB', colorProfile: 'sRGB IEC61966-2.1'
         });
         try {
             await imaging.putPixels({

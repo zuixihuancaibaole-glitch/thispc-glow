@@ -28,6 +28,7 @@
     if (data.length !== width * height) throw new LocalError('蒙版像素数量无效。');
     const left = bounds?.left ?? 0, top = bounds?.top ?? 0;
     if (![left,top,width,height,canvasWidth,canvasHeight].every(Number.isInteger) || Math.min(width,height,canvasWidth,canvasHeight) < 1) throw new LocalError('蒙版范围无效。');
+    if(left===0&&top===0&&width===canvasWidth&&height===canvasHeight)return data;
     const output = new data.constructor(canvasWidth * canvasHeight);
     const start = Math.max(0,-left), end = Math.min(width,canvasWidth-left);
     if (end <= start) return output;
@@ -145,6 +146,7 @@
     catch (error) { if (workflow.getState() && mask) await original.returnToOriginal(); clear(); throw new LocalError('局部柔光编辑失败：'+errorText(error),error); }
   };
   workflow.updatePreview = async (...args) => {
+    if(mask)args[2]={...(args[2]||{}),localBounds:{bounds:getOutputBounds(),width:mask.width,height:mask.height}};
     const result = await original.updatePreview(...args);
     await preview(); return result;
   };
@@ -200,6 +202,15 @@
     });
     syncUi();
   }
-  app.LocalGlow = Object.freeze({resizeMask,expandMask,featherValue});
+  function getOutputBounds(){
+    if(!mask)return null;
+    let {left,top,right,bottom}=mask.contentBounds||{left:mask.width,top:mask.height,right:0,bottom:0};
+    if(!mask.contentBounds){for(let y=0;y<mask.height;y++)for(let x=0;x<mask.width;x++)if(mask.data[y*mask.width+x]>0){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);}
+    mask.contentBounds={left,top,right,bottom};}
+    if(right===0||mask.density===0)return {left:0,top:0,right:0,bottom:0};
+    const pad=Math.ceil(6*mask.feather);
+    return {left:Math.max(0,left-pad),top:Math.max(0,top-pad),right:Math.min(mask.width,right+pad),bottom:Math.min(mask.height,bottom+pad)};
+  }
+  app.LocalGlow = Object.freeze({resizeMask,expandMask,featherValue,getOutputBounds});
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',bind); else bind();
 })();
