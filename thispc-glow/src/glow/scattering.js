@@ -63,6 +63,13 @@
     }
   }
 
+  function blackEmission(value,knee){
+    const t=clamp((value-knee)/.25,0,1);
+    // Bound the extraction slope to 1 so strong diffusion cannot reverse an edge.
+    const highlight=value>knee+.25?value-knee-.125:.25*t*t*t*(1-.5*t);
+    return .45*value+.55*highlight;
+  }
+
   function* prepare(source, params) {
     const count = source.width * source.height;
     const light = new Float32Array(count * 3);
@@ -79,10 +86,11 @@
       const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
       const t = clamp((luminance - knee) / 0.25, 0, 1);
       const weight = base + (1 - base) * t * t * (3 - 2 * t);
-      light[pixel * 3] = red * weight;
-      light[pixel * 3 + 1] = green * weight;
-      light[pixel * 3 + 2] = blue * weight;
-      xray.data[index] = xray.data[index + 1] = xray.data[index + 2] = weight * 255;
+      const smoothBlack=white===0;
+      light[pixel * 3] = smoothBlack?blackEmission(red,knee):red*weight;
+      light[pixel * 3 + 1] = smoothBlack?blackEmission(green,knee):green*weight;
+      light[pixel * 3 + 2] = smoothBlack?blackEmission(blue,knee):blue*weight;
+      xray.data[index] = xray.data[index + 1] = xray.data[index + 2] = (white===0?(luminance>0?(.2126*light[pixel*3]+.7152*light[pixel*3+1]+.0722*light[pixel*3+2])/luminance:0):weight)*255;
       xray.data[index + 3] = 255;
       if ((pixel & 16383) === 16383) yield;
     }
@@ -135,9 +143,9 @@
     }
     const started = now();
     const params = app.GlowParams.normalizeParams(rawParams);
-    const sourceKey = `${params.threshold}|${params.drCompression}|${params.whiteMist}`;
+    const sourceKey = `${params.threshold}|${params.drCompression}|${params.whiteMist}|${params.scatterModel}`;
     const geometryKey = `${sourceKey}|${params.radius}|${params.iterations}|${params.coreOpacity}|${params.scatterModel}`;
-    const compatible = previous?.version === 'scatter-v1.3' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
+    const compatible = previous?.version === 'scatter-v1.4' && previous.sourceData === source.data && previous.width === source.width && previous.height === source.height;
     const sourceHit = compatible && previous.sourceKey === sourceKey;
     const geometryHit = sourceHit && previous.geometryKey === geometryKey;
     const prepared = sourceHit ? previous.prepared : yield* prepare(source, params);
@@ -147,7 +155,9 @@
     const bloom = app.Pixels.makeImageData(source.width, source.height);
     // This UI control is haze density; it must also affect already-selected white lights.
     const density = (1 + params.drCompression / 80) / 1.25;
-    const gain = clamp(0.08 + params.threshold * 2 + params.whiteMist * 0.004, 0.02, 0.85) * density * 1.75 * params.mainOpacity / 100;
+    const strength = clamp(0.08 + params.threshold * 2 + params.whiteMist * 0.004, 0.02, 0.85) * density * 1.75;
+    const gain = (params.whiteMist===0?Math.min(.99,strength*2.2):strength)*params.mainOpacity/100;
+    const opticalGain=params.whiteMist===0?gain:Math.min(.95,gain);
     const saturation = 1 + params.saturation / 100;
     for (let pixel = 0; pixel < source.width * source.height; pixel++) {
       let red = halo[pixel * 3], green = halo[pixel * 3 + 1], blue = halo[pixel * 3 + 2];
@@ -161,7 +171,7 @@
         const diffusion = optical ? diffuseColor : diffuseColor > 0 ? diffuseColor : 0;
         if (diffusion === 0) { bloom.data[index] = optical ? source.data[index] : 0; continue; }
         const original = source.data[index] / 255;
-        const target = encode(clamp(linear[source.data[index]] + diffusion * (optical?Math.min(.95,gain):gain), 0, 1));
+        const target = encode(clamp(linear[source.data[index]] + diffusion * (optical?opticalGain:gain), 0, 1));
         bloom.data[index] = optical ? target * 255 : original < 1 ? clamp((target - original) / (1 - original), 0, 1) * 255 : 0;
       }
       bloom.data[pixel * 4 + 3] = 255;
@@ -170,7 +180,7 @@
     const finished = now();
     return {
       xray: prepared.xray, bloom,
-      cache: {version:'scatter-v1.3', width:source.width, height:source.height, sourceData:source.data, sourceKey, geometryKey, prepared, halo},
+      cache: {version:'scatter-v1.4', width:source.width, height:source.height, sourceData:source.data, sourceKey, geometryKey, prepared, halo},
       cacheMode: geometryHit ? 'compose' : sourceHit ? 'geometry' : 'full',
       sourceRebuilt: !sourceHit, geometryRebuilt: !geometryHit,
       timing: {sourceStageMs:sourceDone-started, blurStageMs:geometryDone-sourceDone, composeMs:finished-geometryDone, totalAlgorithmMs:finished-started, totalMs:finished-started},
@@ -197,5 +207,5 @@
       }
     } finally { stages.return(); }
   }
-  app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached, renderPhaseOneCachedAsync, rotateHue});
+  app.ScatterAlgorithm = Object.freeze({renderPhaseOneCached, renderPhaseOneCachedAsync, rotateHue, blackEmission});
 })(Math);

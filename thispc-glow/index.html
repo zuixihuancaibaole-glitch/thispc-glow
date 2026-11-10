@@ -5,7 +5,7 @@
     <title>这台电脑的插件</title>
     <link rel="stylesheet" href="styles.css" />
 
-    <script>window.__YC_GLOW_MANIFEST_VERSION__ = "1.7.0";</script>
+    <script>window.__YC_GLOW_MANIFEST_VERSION__ = "1.8.1";</script>
   </head>
   <body data-view="home">
     <main class="app-shell">
@@ -14,12 +14,14 @@
         <span id="workVersionLabel" class="toolbar-version-label" hidden></span>
       </header>
 
+      <section class="output-choice"><label><input id="fastMode" type="checkbox" checked /> 快速模式</label><p id="fastModeHint">按已完成的预览保存（最长边 1200 px），铺满原图；柔光细节降低。</p></section>
+
       <p id="expiryNotice" class="expiry-notice" role="status" hidden></p>
       <div id="mainScroll" class="main-scroll">
       <section id="homeView" class="view is-active">
         <section class="brand-hero home-brand-hero" aria-label="光效工具"><p class="home-eyebrow">THISPC GLOW</p><h1 class="home-title">柔光工具</h1><p class="home-subtitle">柔和光线，自然过渡。</p></section>
 
-        <label class="optical-choice"><input id="opticalScatter" type="checkbox" checked /> 光学柔光 · 保留原尺寸源图</label>
+        <label class="optical-choice"><input id="opticalScatter" type="checkbox" checked /> 光学柔光 · 自然扩散光线</label>
         <section class="home-actions" aria-label="开始使用">
           <div class="home-action-glow home-action-glow-new">
             <div id="newGlowButton" class="home-action-card home-action-new" role="button" tabindex="0">

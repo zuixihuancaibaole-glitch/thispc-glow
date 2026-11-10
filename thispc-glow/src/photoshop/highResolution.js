@@ -1,6 +1,16 @@
 (() => {
   const app=window.YCGlow,flow=app.PsbWorkflow,original={...flow};
-  const marker='THISPC_FULL_RESOLUTION_V1';
+  const marker='THISPC_FULL_RESOLUTION_V1',fastMarker='THISPC_FAST_OUTPUT_V1';
+  const fastToggle=()=>typeof document==='undefined'?null:document.getElementById('fastMode');
+  function syncFastMode(){
+    const toggle=fastToggle();if(!toggle)return;
+    const state=flow.getState(),fastSource=state?.work.fastSource;
+    toggle.disabled=!!state&&(!state.work.masterFile||!!fastSource);
+    if(fastSource)toggle.checked=true;
+    const hint=document.getElementById('fastModeHint');
+    if(hint)hint.textContent=fastSource?'此对象保留的是预览尺寸源图；需要完整细节请从原照片新建。':state&&!state.work.masterFile?'旧对象不支持此选项；请从原照片新建。':toggle.checked?'按已完成的预览保存（最长边 1200 px），铺满原图；柔光细节降低。':'按完整源图计算，保存较慢；保留原尺寸细节。';
+  }
+  fastToggle()?.addEventListener('change',syncFastMode);
   let stage='idle';
   const ps=()=>app.Batch.requirePhotoshop();
   function find(layers,name){for(const layer of layers){if(layer.name===name)return layer;const found=layer.layers&&find(layer.layers,name);if(found)return found;}return null;}
@@ -16,7 +26,8 @@
   }
   async function prepareEdit(work){
     const doc=ps().app.activeDocument;
-    if(!find(doc.layers,marker))return;
+    work.fastSource=!!find(doc.layers,fastMarker);
+    if(!find(doc.layers,marker)&&!work.fastSource)return;
     work.masterFile=await app.Files.temporaryFile('thispc-edit-source-'+Date.now()+'.psb');
     try{
       await app.Files.saveActiveDocumentAsPsb(work.masterFile,{asCopy:true});
@@ -39,8 +50,13 @@
       });
       const result=await original.createNewGlow(status,normalized,options),state=flow.getState();
       state.work.masterFile=master;state.work.fullWidth=state.original.width;state.work.fullHeight=state.original.height;
-      return result;
+      syncFastMode();return result;
     }catch(error){if(master)await app.Files.deleteTemporaryFile(master);throw error;}
+  };
+  flow.beginEditGlow=async(...args)=>{
+    const result=await original.beginEditGlow(...args);
+    const toggle=fastToggle();if(toggle)toggle.checked=!!flow.getState()?.work.fastSource;
+    syncFastMode();return result;
   };
   const pending=flow.setPendingParams;
   flow.setPendingParams=(params,...args)=>{
@@ -103,6 +119,26 @@
     if(group.kind!==ps().constants.LayerKind.GROUP||!group.layers||group.layers.length<4)throw new Error('无法建立包含完整源图的可编辑图层组。');
     return group;
   }
+  async function renderFastDocument(state,context,status){
+    stage='duplicate preview for quick output';
+    await app.Documents.selectDocumentById(state.work.id);
+    const output=await ps().app.activeDocument.duplicate('ThisPC quick glow',false);
+    context.hostControl.registerAutoCloseDocument?.(output.id);
+    try{
+      const names=app.GlowLayerIds.current,source=find(output.layers,names.source),bloom=find(output.layers,names.bloom),xray=find(output.layers,names.xray);
+      if(!source||!bloom)throw new Error('快速输出缺少源图或柔光图层。');
+      source.visible=state.params.scatterModel===2;
+      bloom.visible=true;bloom.blendMode=state.params.scatterModel===2?ps().constants.BlendMode.NORMAL:ps().constants.BlendMode.SCREEN;
+      if(xray)xray.visible=false;
+      if(!find(output.layers,fastMarker)){const tag=await output.createPixelLayer({name:fastMarker});tag.visible=false;}
+      const schema=await flow.prepareWorkDocumentLayerSchema({documentId:output.id,metadataRoles:null});
+      await app.GlowMetadata.writeState({...state.glowState,currentParams:state.params,workLongEdge:Math.max(Number(output.width),Number(output.height))},{layerRoles:schema.layerRoles});
+      const file=await app.Files.temporaryFile('thispc-quick-glow-'+Date.now()+'.psb');
+      status?.('正在快速保存预览尺寸柔光…');
+      try{await app.Files.saveActiveDocumentAsPsb(file);return {file,width:Number(output.width),height:Number(output.height)};}
+      catch(error){await app.Files.deleteTemporaryFile(file);throw error;}
+    }finally{await app.Documents.closeDocumentByIdWithoutSaving(output.id);}
+  }
   async function renderDocument(state,context,status){
     stage='open full source';
     const master=await app.Documents.openFileAsDocument(state.work.masterFile);
@@ -154,10 +190,12 @@
     const state=flow.getState();
     if(!state?.work.masterFile)return original.saveGlowToOriginal(status);
     let rendered;
+    const fast=fastToggle()?.checked===true||!!state.work.fastSource;
+    if(fastToggle())fastToggle().disabled=true;
     const edit=app.EditSession.get();
     try{
-      return await app.Batch.runModal('保存原尺寸可编辑柔光',async context=>{
-        rendered=await renderDocument(state,context,status);
+      return await app.Batch.runModal(fast?'快速保存可编辑柔光':'保存原尺寸可编辑柔光',async context=>{
+        rendered=await (fast?renderFastDocument:renderDocument)(state,context,status);
         if(context.isCancelled)throw new Error('已取消原尺寸保存。');
         const token=await app.Files.createSessionToken(rendered.file);
         await app.Documents.selectDocumentById(state.original.id);
@@ -176,21 +214,21 @@
           }
           commit=true;
         }finally{await context.hostControl.resumeHistory(suspension,commit);}
-        app.Logger.info('Full-resolution saved '+JSON.stringify({width:rendered.width,height:rendered.height,mode:state.mode,scatterModel:state.params.scatterModel}));
-        return {message:'已保存原尺寸 '+rendered.width+'×'+rendered.height+' 可编辑柔光。',layerName,updatedExistingLayer:state.mode==='edit'};
+        app.Logger.info((fast?'Fast-mode saved ':'Full-resolution saved ')+JSON.stringify({width:rendered.width,height:rendered.height,mode:state.mode,scatterModel:state.params.scatterModel}));
+        return {message:(fast?'已快速保存预览尺寸 ':'已保存原尺寸 ')+rendered.width+'×'+rendered.height+' 可编辑柔光。',layerName,updatedExistingLayer:state.mode==='edit'};
       }).then(async result=>{
         app.GlowState.saveGlobalState({...state.glowState,currentParams:state.params});
         await flow.completeSavedSession();
         await app.Files.deleteTemporaryFile(state.work.masterFile,'full source');
         return result;
       });
-    }catch(error){app.Logger.error('Full-resolution failure '+JSON.stringify({stage,message:error?.message||String(error),stack:error?.stack||'',detail:error}));await app.Documents.selectDocumentById(state.work.id).catch(()=>{});throw new app.Errors.UserFacingError('原尺寸保存失败（'+stage+'）：'+(error?.message||String(error)),error);}
-    finally{if(rendered)await app.Files.deleteTemporaryFile(rendered.file,'rendered smart object');}
+    }catch(error){app.Logger.error('Full-resolution failure '+JSON.stringify({stage,message:error?.message||String(error),stack:error?.stack||'',detail:error}));await app.Documents.selectDocumentById(state.work.id).catch(()=>{});throw new app.Errors.UserFacingError((fast?'快速保存失败（':'原尺寸保存失败（')+stage+'）：'+(error?.message||String(error)),error);}
+    finally{if(rendered)await app.Files.deleteTemporaryFile(rendered.file,'rendered smart object');syncFastMode();}
   };
   flow.returnToOriginal=async(...args)=>{
     const master=flow.getState()?.work.masterFile;
     const result=await original.returnToOriginal(...args);
-    if(master)await app.Files.deleteTemporaryFile(master,'full source');return result;
+    if(master)await app.Files.deleteTemporaryFile(master,'full source');syncFastMode();return result;
   };
   app.HighResolution=Object.freeze({prepareEdit,diskStores,readSource});
 })();

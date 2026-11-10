@@ -46,7 +46,8 @@
         for(let p=0;p<w*count;p++){
           const r=linear(original[p*4]/max),g=linear(original[p*4+1]/max),blue=linear(original[p*4+2]/max);
           const t=clamp((.2126*r+.7152*g+.0722*blue-knee)/.25,0,1),weight=base+(1-base)*t*t*(3-2*t);
-          output[p*3]=r*weight;output[p*3+1]=g*weight;output[p*3+2]=blue*weight;
+          const smoothBlack=white===0;
+          output[p*3]=smoothBlack?app.ScatterAlgorithm.blackEmission(r,knee):r*weight;output[p*3+1]=smoothBlack?app.ScatterAlgorithm.blackEmission(g,knee):g*weight;output[p*3+2]=smoothBlack?app.ScatterAlgorithm.blackEmission(blue,knee):blue*weight;
         }
         await light.set(y/rows,output);
       }
@@ -88,7 +89,9 @@
         onProgress((layer+1)/(kernels.length+1));
       }
       const density=(1+params.drCompression/80)/1.25;
-      const gain=clamp(.08+params.threshold*2+params.whiteMist*.004,.02,.85)*density*1.75*params.mainOpacity/100;
+      const strength=clamp(.08+params.threshold*2+params.whiteMist*.004,.02,.85)*density*1.75;
+      const gain=(params.whiteMist===0?Math.min(.99,strength*2.2):strength)*params.mainOpacity/100;
+      const opticalGain=params.whiteMist===0?gain:Math.min(.95,gain);
       for(let y=0;y<h;y+=rows){
         await checkpoint();const count=Math.min(rows,h-y),globalY=area.top+y;
         if(globalY+count<=target.top||globalY>=target.bottom)continue;
@@ -100,7 +103,7 @@
           const gray=.2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
           for(let c=0;c<3;c++){
             const source=original[p*4+c]/maximum,diffuse=gray+(rgb[c]-gray)*(1+params.saturation/100);
-            const targetValue=encode(clamp(linear(source)+diffuse*(params.scatterModel===2?Math.min(.95,gain):gain),0,1));
+            const targetValue=encode(clamp(linear(source)+diffuse*(params.scatterModel===2?opticalGain:gain),0,1));
             const value=params.scatterModel===2?targetValue:source<1?clamp((targetValue-source)/(1-source),0,1):0;
             out[p*4+c]=Math.round(clamp(value,0,1)*65535);
           }
